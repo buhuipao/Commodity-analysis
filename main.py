@@ -30,9 +30,13 @@ def main():
     except:
         pass
     for number in xrange(1, page_number+1):
-        products_name, products_price, products_url = a_spider.search(key_word, number)
-        for i in xrange(len(products_url)):
-            print(products_name[i], products_price[i], products_url[i])
+        a_spider.search(key_word, number)
+        goods_names, goods_urls, goods_prices = a_spider.search(key_word, number)
+        for i in xrange(len(goods_urls)):
+            print(goods_names[i])
+            print(goods_prices[i])
+            print(goods_urls[i])
+
 
 if __name__ == '__main__':
     main()

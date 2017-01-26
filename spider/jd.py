@@ -81,7 +81,7 @@ class JD(object):
 
     def run(self):
         page = self.get_result(self.price, self.key_word)
-        self.extract_result(page)
+        return self.extract_result(page)
 
 if __name__ == '__main__':
     jd = JD(sys.argv[1], sys.argv[2])
