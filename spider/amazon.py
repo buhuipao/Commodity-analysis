@@ -1,8 +1,8 @@
 # _*_coding: utf-8 _*_
 
-import re
 import requests
 from lxml import etree
+from ipdb import set_trace
 
 
 class Amazon(object):
@@ -23,32 +23,27 @@ class Amazon(object):
              }
         payload = {'ie': 'UTF8', 'keywords': key_word, 'page': page_number}
         r = requests.get(self.url, headers=headers, params=payload)
+        print(r.url)
         r.encoding = 'utf-8'
         return r.text.encode('utf-8')
 
     def extract_result(self, results):
         print('Start extract goods info...')
         page = etree.HTML(results)
-        # 抽取li标签下的孙div标签的第一个子标签的a标签的title
-        products_name = page.xpath('//li/div/div[@class="a-row a-spacing-mini"][1]/div[1]/a/@title')
-        products_url = page.xpath('//li/div/div[@class="a-row a-spacing-mini"][1]/div[1]/a/@href')
-        # 匹配第一页的每一项的第一个价格，解决了用xpath解析的BUG（不同种类商品搜索结构页面具有不同的结构, 导致一些商品价格解析不出）
-        pattern = re.compile(r'<li id="result_.*?<span class="a-size-base a-color-price.*?">(.*?)</span>', re.S)
-        products_price = re.findall(pattern, results)
-        self.clean_Ad(products_url, products_name, products_price)
-        print(len(products_url), len(products_name), len(products_price))
-        return (products_name, products_price[:len(products_name)], products_url)
+        # 先把列表抓取出来,再解析每项中的name, url, price
+        goodses = page.xpath('//li[@class="s-result-item  celwidget "]')
+        name_list, url_list, price_list = [], [], []
+        for goods in goodses:
+            goods_price = goods.xpath('div//span[contains(@class, "a-size-base a-color-price")][1]/text()')
+            goods_name = goods.xpath('div/div[@class="a-row a-spacing-mini"][1]/div[1]/a/@title')
+            goods_url = goods.xpath('div/div[@class="a-row a-spacing-mini"][1]/div[1]/a/@href')
+            if not goods_price or not goods_url or not goods_price:
+                continue
+            name_list.append(goods_name[0])
+            url_list.append(goods_url[0])
+            price_list.append(goods_price[0])
+        return (name_list, url_list, price_list)
 
     def search(self, key_word, page_number=1):
         results = self.get_result(key_word, page_number)
         return self.extract_result(results)
-
-    # 去掉广告项(广告项url不含https://, 以/gp/开头)
-    def clean_Ad(self, urls, names, prices):
-        for url in urls:
-            if url.find('/dp/') == -1:
-                print('Clean Ad goods...')
-                index = urls.index(url)
-                urls.pop(index)
-                names.pop(index)
-                prices.pop(index)
