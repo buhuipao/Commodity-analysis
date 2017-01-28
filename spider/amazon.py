@@ -23,7 +23,6 @@ class Amazon(object):
              }
         payload = {'ie': 'UTF8', 'keywords': key_word, 'page': page_number}
         r = requests.get(self.url, headers=headers, params=payload)
-        print(r.url)
         r.encoding = 'utf-8'
         return r.text.encode('utf-8')
 
