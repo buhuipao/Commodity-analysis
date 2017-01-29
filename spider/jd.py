@@ -2,6 +2,7 @@
 
 import requests
 from lxml import etree
+from ipdb import set_trace
 
 
 class JD(object):
@@ -35,30 +36,37 @@ class JD(object):
              }
         response = requests.get(self.url, headers=headers, params=payload, timeout=60)
         response.encoding = 'utf-8'
+        print(response.url)
         return response.text.encode('utf-8')
 
     def extract_result(self, html):
         page = etree.HTML(html)
-        products_name = page.xpath('//ul[@class="gl-warp clearfix"]/li[@data-sku]/div/div[contains(@class, "p-name")]/a/@title')
-        products_url = page.xpath('//ul[@class="gl-warp clearfix"]/li[@data-sku]/div/div[contains(@class, "p-name")]/a/@href')
-        products_price = page.xpath('//ul[@class="gl-warp clearfix"]/li[@data-sku]/div/div[contains(@class, "p-price")]//i/text()')
-        '''
-        # 当搜索不到结果时，用于解析jd的推荐商品列表
-        if not products_name or not products_url or products_price and html.find('class="notice-search"') != -1:
+        products_name = []
+        # 如果搜索不到结果，则解析jd推荐结果
+        if html.find('class="notice-search"') != -1:
+            names = page.xpath("string(//ul[@class='clearfix'][1]/li/div/div[@class='p-name']//em)")
+            for name in names:
+                products_name.append(name.xpath('string(.)'))
             products_url = page.xpath('//ul[@class="clearfix"][1]/li/div/div[@class="p-name"]/a/@href')
             products_price = page.xpath('//ul[@class="clearfix"][1]/li/div/div[@class="p-price"]//i/text()')
-            products_name = page.xpath('//ul[@class="clearfix"][1]/li/div/div[@class="p-name"]//em/text()')
-            # products_name = data.xpath('string(.)')
-            print(products_name)
         else:
-            return ([], [], [])
-        '''
+            names = page.xpath("//ul[@class='gl-warp clearfix']/li[@data-sku]/div/div[contains(@class, 'p-name')]/a/em")
+            for name in names:
+                products_name.append(name.xpath('string(.)'))
+            products_url = page.xpath('//ul[@class="gl-warp clearfix"]/li[@data-sku]/div/div[contains(@class, "p-name")]/a/@href')
+            products_price = page.xpath('//ul[@class="gl-warp clearfix"]/li[@data-sku]/div/div[contains(@class, "p-price")]//i/text()')
+        # 如果解析不正确返回空字典
+        if not products_name or not products_url or not products_price:
+            return {}
         self.clean_Ad(products_url, products_name)
 
         # 给链接添加'https://'头
         make_url = lambda url: url.replace('//', 'https://')
         products_url = map(make_url, products_url)
-        return (products_name, products_url, products_price)
+        result_dict = {}
+        for i in xrange(len(products_name)):
+            result_dict[products_name[i]] = (products_url[i], products_price[i])
+        return result_dict
 
     # 去除jd广告推荐商品的url同时去掉商品列表中对应的商品名, 之前价格解析不到所以不需要做去除操作
     def clean_Ad(self, urls, names):
@@ -74,4 +82,4 @@ class JD(object):
 
 if __name__ == '__main__':
     jd = JD()
-    jd.search('1200', '小米 红米 Note4 高配 ')
+    print(jd.search(float(1200), u'华为'))

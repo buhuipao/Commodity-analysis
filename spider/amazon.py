@@ -31,17 +31,19 @@ class Amazon(object):
         page = etree.HTML(results)
         # 先把列表抓取出来,再解析每项中的name, url, price
         goodses = page.xpath('//li[@class="s-result-item  celwidget "]')
-        name_list, url_list, price_list = [], [], []
+        result_dict = {}
         for goods in goodses:
             goods_price = goods.xpath('div//span[contains(@class, "a-size-base a-color-price")][1]/text()')
             goods_name = goods.xpath('div/div[@class="a-row a-spacing-mini"][1]/div[1]/a/@title')
             goods_url = goods.xpath('div/div[@class="a-row a-spacing-mini"][1]/div[1]/a/@href')
             if not goods_price or not goods_url or not goods_price:
                 continue
-            name_list.append(goods_name[0])
-            url_list.append(goods_url[0])
-            price_list.append(goods_price[0])
-        return (name_list, url_list, price_list)
+            # 有些奇葩的亚马逊刊物定价'免费'
+            if goods_price[0].find(u'免费') != -1:
+                goods_price = float(0)
+            # 去掉价格上的¥符号, 替换,符号
+            result_dict[goods_name[0]] = (goods_url[0], float(goods_price[0][1:].replace(',', '')))
+        return result_dict
 
     def search(self, key_word, page_number=1):
         results = self.get_result(key_word, page_number)
