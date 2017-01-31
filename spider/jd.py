@@ -65,7 +65,7 @@ class JD(object):
         products_url = map(make_url, products_url)
         result_dict = {}
         for i in xrange(len(products_name)):
-            result_dict[products_name[i]] = (products_url[i], products_price[i])
+            result_dict[products_name[i]] = (products_url[i], float(products_price[i]))
         return result_dict
 
     # 去除jd广告推荐商品的url同时去掉商品列表中对应的商品名, 之前价格解析不到所以不需要做去除操作
@@ -79,7 +79,3 @@ class JD(object):
     def search(self, price, key_word):
         page = self.get_result(price, key_word)
         return self.extract_result(page)
-
-if __name__ == '__main__':
-    jd = JD()
-    print(jd.search(float(1200), u'华为'))
