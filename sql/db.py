@@ -16,7 +16,7 @@ DB.authenticate('buhuipao', 'ch19950802qs', mechanism='SCRAM-SHA-1')
 
 def save_result(data):
     assert type(data) == dict
-    today = time.strftime("%Y-%m-%d", time.time())
+    today = time.strftime("%Y-%m-%d")
     # 增量更新价格
     # 如果存在记录，今天查询过则替换最后搜索的价格否则添加到列表末
     # 不存在则改变数据格式准备之后的存储
