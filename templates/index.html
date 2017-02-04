@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}首页{% endblock %}
+
+
+{% block page_content %}
+
+<form class="form form-horizontal" method="post" role="form">
+  {{ form.hidden_tag() }}
+  {{ wtf.form_errors(form, hiddens="only") }}
+
+<div class="row">
+  <div class="col-lg-6">
+    <div class="input-group">
+    {{ wtf.form_field(form.price) }}
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="input-group">
+    {{ wtf.form_field(form.key_word) }}
+    </div>
+  </div>
+
+  {{ wtf.form_field(form.refresh) }}
+  {{ wtf.form_field(form.submit) }}
+</div>
+
+<div class="page-header">
+  {% if refresh %}
+    <h1>Refresh is True!</h1>
+  {% else %}
+    <h1>Refresh is False!</h1>
+  {% endif %}
+
+  {% if search %}
+    <h1>Hi, {{ price, key_word }}!</h1>
+  {% else %}
+    <h1>Not submit!</h1>
+    {% endif %}
+</div>
+
+{% endblock %}
