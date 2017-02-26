@@ -1,8 +1,9 @@
 # _*_ coding: utf-8 _*_
 
-from pymongo import MongoClient
 from pymongo import ReturnDocument
 from pprint import pprint
+from pymongo import MongoClient
+from bson import json_util
 
 import time
 
@@ -14,35 +15,55 @@ DB = client.goods
 DB.authenticate('buhuipao', 'ch19950802qs', mechanism='SCRAM-SHA-1')
 
 
-def save_result(data):
+def save_search_result(data):
+    '''
+     增量更新价格, 如果不存在记录则新建， 存在则判断今天的价格是否存在,
+     如果今日的价格存在则先弹出再增加，否则直接增加, 返回更新后的文档
+    '''
     assert type(data) == dict
-    today = time.strftime("%Y-%m-%d")
-    # 增量更新价格
-    # 如果存在记录，今天查询过则替换最后搜索的价格否则添加到列表末
-    # 不存在则改变数据格式准备之后的存储
+    assert type(data['price']) == float
+    today = int(time.strftime("%Y%m%d"))
+    name = data['name']
+    key_word = data['key_word']
+    prices = {'date': today, 'price': data['price']}
+    data.pop('price')
     try:
-        prices = DB.Amazon.find_one({'name': data['name'], 'key_word': data['key_word']})['price']
-        if today not in [price.keys()[0] for price in prices]:
-            prices.append({today: data['price']})
-            data['price'] = prices
+        old_data = DB.Amazon.find_one({'name': name, 'key_word': key_word})
+        if not old_data:
+            data['prices'] = [prices]
+            DB.Amazon.insert_one(data)
+            return data
         else:
-            prices[-1][today] = data['price']
-            data['price'] = prices
-    except:
-        data['price'] = [{today: data['price']}]
-
-    try:
-        result = DB.Amazon.find_one_and_replace({'name': data['name'], 'key_word': data['key_word']}, data, upsert=True, return_document=ReturnDocument.AFTER)
-        pprint(result)
-        return result
+            # 如果今日的纪录存在，先弹出压入保存
+            if today in old_data['prices'][-1].values():
+                # {'$pop': {'prices': 1}}表示从prices列表里正序弹栈
+                DB.Amazon.find_one_and_update({'name': name, 'key_word': key_word}, {'$pop': {'prices': 1}})
+            return DB.Amazon.find_one_and_update(
+                    {'name': name, 'key_word': key_word},
+                    {'$push': {'prices': prices}},
+                    {'_id': 0},
+                    return_document=ReturnDocument.AFTER)
     except Exception as e:
-        print('Save result error:%s' % e)
-        return
+        raise Exception('%s' % e)
 
 
-def find_data(key_word):
-    return DB.find({'key_word': key_word})
+def search_goods(limit_price, key_word):
+    '''
+    # 传入四个参数，分别为：最低价格，关键字，分页大小，查询页码
+    today = int(time.strftime("%Y%m%d"))
+    data = DB.Amazon.find({'key_word': key_word, 'date': today, 'price': {'$gte': limit_price}})
+    length = DB.Amazon.find({'key_word': key_word, 'date': today, 'price': {'$gte': limit_price}}).count()
+    end_page = length / pagesize + 1
+    return json_util.dumps(data[page*pagesize:(page+1)*pagesize])
+    '''
+    result = json_util.dumps(DB.Amazon.find(
+        {'key_word': key_word,
+         'prices.price': {'$gte': limit_price}},
+        {'_id': 0}))
+    return json_util.loads(result)
 
 
-def update_one(data):
-    pass
+def find_one_goods(key_word, goods_name):
+    return DB.Amazon.find_one(
+            {'key_word': key_word, 'name': goods_name},
+            {'_id': 0})
