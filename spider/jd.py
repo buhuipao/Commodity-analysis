@@ -36,7 +36,6 @@ class JD(object):
              }
         response = requests.get(self.url, headers=headers, params=payload, timeout=60)
         response.encoding = 'utf-8'
-        print(response.url)
         return response.text.encode('utf-8')
 
     def extract_result(self, html):

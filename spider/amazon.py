@@ -1,4 +1,4 @@
-# _*_coding: utf-8 _*_
+# _*_ coding: utf-8 _*_
 
 import requests
 from lxml import etree
@@ -33,16 +33,22 @@ class Amazon(object):
         goodses = page.xpath('//li[@class="s-result-item  celwidget "]')
         result_dict = {}
         for goods in goodses:
-            goods_price = goods.xpath('div//span[contains(@class, "a-size-base a-color-price")][1]/text()')
-            goods_name = goods.xpath('div/div[@class="a-row a-spacing-mini"][1]/div[1]/a/@title')
-            goods_url = goods.xpath('div/div[@class="a-row a-spacing-mini"][1]/div[1]/a/@href')
-            if not goods_price or not goods_url or not goods_price:
+            try:
+                goods_price = goods.xpath('div//span[contains(@class, "a-size-base a-color-price")][1]/text()')
+                goods_name = goods.xpath('div/div[@class="a-row a-spacing-mini"][1]/div[1]/a/@title')
+                goods_url = goods.xpath('div/div[@class="a-row a-spacing-mini"][1]/div[1]/a/@href')
+                if not goods_price or not goods_url or not goods_price:
+                    continue
+                # 有些奇葩的亚马逊刊物定价'免费'
+                if goods_price[0].find(u'免费') != -1:
+                    goods_price = float(0)
+                else:
+                    # 去掉价格上的¥符号, 替换,符号
+                    # 某些amazon价格是一个范围'¥59 － ¥99', 需要截取一部分
+                    goods_price = float(goods_price[0][1:].replace(',', '').split('-')[0].strip())
+                result_dict[goods_name[0]] = (goods_url[0], goods_price)
+            except:
                 continue
-            # 有些奇葩的亚马逊刊物定价'免费'
-            if goods_price[0].find(u'免费') != -1:
-                goods_price = float(0)
-            # 去掉价格上的¥符号, 替换,符号
-            result_dict[goods_name[0]] = (goods_url[0], float(goods_price[0][1:].replace(',', '')))
         return result_dict
 
     def search(self, key_word, page_number=1):
