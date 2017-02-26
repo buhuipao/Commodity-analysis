@@ -1,24 +1,50 @@
 {% extends "base.html" %}
-{% import "bootstrap/wtf.html" as wtf %}
 
-{% block title %}首页{% endblock %}
+{% block title %}搜索{% endblock %}
 
 
 {% block page_content %}
+
 
 <form class="form form-horizontal" method="post" role="form">
   {{ form.hidden_tag() }}
   {{ wtf.form_errors(form, hiddens="only") }}
 
-  {{ wtf.form_field(form.price) }}
-  {{ wtf.form_field(form.key_word) }}
+<div class="row">
+  <div class="col-lg-6">
+    <div class="input-group">
+    {{ wtf.form_field(form.price) }}
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="input-group">
+    {{ wtf.form_field(form.key_word) }}
+    </div>
+  </div>
+
+  {{ wtf.form_field(form.refresh) }}
   {{ wtf.form_field(form.submit) }}
-</form>
+</div>
+
+<div class="panel panel-default">
+  <!-- Default panel contents -->
+  <div class="panel-heading">搜索结果</div>
+
+  <!-- Table -->
+  <table class="table">
+    {% for goods in result %}
+    <tr class="list-group-item list-group-item-info">
+      <td><a href="{{ goods['url']|safe }}" target="_blank">{{ goods['name']|safe }}</a></td>
+      <td><span class="label label-info">¥{{ goods['prices'][-1]['price']|safe }}</span></td>
+      <td><a href="{{ url_for('plot',  key_word=goods['key_word'], goods_name=goods['name']) }}" target="_blank", class="btn btn-info btn-sm">价格走势</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
 
 
-<div class="page-header">
-  <h1>Hello, {% if limit_price %}{{ limit_price }}{% else %} 0 {% endif %}!</h1>
-  <h1>Hello, {% if key_word %}{{ key_word }}{% else %} key_word {% endif %}!</h1>
+<div style="float: right">
 </div>
 
 {% endblock %}

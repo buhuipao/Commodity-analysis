@@ -2,14 +2,51 @@
 
 import jieba
 import jieba.analyse
+import time
 
 from spider import jd
 from spider import amazon
 from sql import db
+
 from ipdb import set_trace
 
 
-def main():
+jieba.load_userdict('mydict')
+
+
+def Search(limit_price, key_word, page_number=1):
+    assert type(limit_price) == float
+    result = []
+    a_spider = amazon.Amazon()
+    j_spider = jd.JD()
+    # Amazon爬虫返回的结果格式为一个字典，像这样{A_name: (A_url, A_price), B_name: (B_url, B_price), ...}
+    a_results = a_spider.search(key_word, page_number)
+    for name in a_results.keys():
+        search_word = extract_tags(key_word, name)
+        assert type(a_results[name][1]) == float
+        # 筛选用户大于设定价格的的商品，如果价格小于设定的价格就忽略
+        if a_results[name][1] < limit_price:
+            continue
+        old_data = db.find_one_goods(key_word, name)
+        today = int(time.strftime("%Y%m%d"))
+        if old_data and old_data['prices'][-1]['date'] == today:
+            result.append(old_data)
+            continue
+        try:
+            # 以Amazon的商品价格作为期望价格(0.9~1.1)做限定价格去搜索JD商品
+            j_results = j_spider.search(a_results[name][-1], search_word)
+            # 如果搜索不到尝试反转搜索关键词
+            if len(j_results) == 0:
+                j_results = j_spider.search(a_results[name][1], ' '.join(search_word.split()[::-1]))
+            same_goods = chose_result(a_results[name][1], j_results)
+            data = {'name': name, 'key_word': key_word, 'url': a_results[name][0], 'price': a_results[name][1], 'same': same_goods}
+            result.append(db.save_search_result(data))
+        except:
+            continue
+    return result
+
+
+def get_input():
     # 如果输入两个字符则表示限制最低搜索价格
     Input = raw_input('Please enter product name\n').strip().split()
     if len(Input) == 0:
@@ -25,35 +62,11 @@ def main():
         except:
             print('WARNING: Please provide the correct price limit or provide the correct price format!')
             limit_price = float(0)
-
-    a_spider = amazon.Amazon()
-    j_spider = jd.JD()
     try:
         page_number = int(raw_input('Please enter the number of pages you want to search\n').strip())
     except:
         page_number = 1
-
-    for number in xrange(1, page_number+1):
-        # Amazon爬虫返回的结果格式为一个字典，像这样{A_name: (A_url, A_price), B_name: (B_url, B_price), ...}
-        a_results = a_spider.search(key_word, number)
-        for name in a_results.keys():
-            search_word = extract_tags(key_word, name)
-            assert type(a_results[name][1]) == float
-            # 筛选用户大于设定价格的的商品，如果价格小于设定的价格就忽略
-            if a_results[name][1] < limit_price:
-                continue
-            try:
-                # 以Amazon的商品价格作为期望价格(0.9~1.1)做限定价格去搜索JD商品
-                j_results = j_spider.search(a_results[name][-1], search_word)
-                # 如果搜索不到尝试反转搜索关键词
-                if len(j_results) == 0:
-                    j_results = j_spider.search(a_results[name][1], ' '.join(search_word.split()[::-1]))
-                same_goods = chose_result(a_results[name][1], j_results)
-                data = {'name': name, 'key_word': search_word, 'url': a_results[name][0], 'price': a_results[name][1], 'same': same_goods}
-                db.save_result(data)
-            except Exception as e:
-                print(e)
-                continue
+    return (limit_price, key_word, page_number)
 
 
 def extract_tags(key_word, a_name):
@@ -81,11 +94,10 @@ def chose_result(a_price, j_results):
     assert type(j_results) == dict
     '''
     对结果字典按照value进行排序
-    如果结果长度大于二，则返回最低价和第一个大于等于amazon价格的结果项的列表
-    否则返回空列表
+    如果结果长度大于二，则返回最低价和第一个大于等于amazon价格的结果项的列表,
+    但要避免最低价就是第一个大于amazon价格的, 否则返回空列表
     '''
     results = sorted(j_results.items(), key=lambda item: item[1][1])
-    # 目标项的格式(name, (url, price)), 取得目标项组成字典列表存到mongoDB
     if len(results) >= 2:
         min_result = results[0]
         gt_result = [result for result in results if result[1][1] >= a_price][0]
@@ -102,7 +114,3 @@ def chose_result(a_price, j_results):
         return one_list
     else:
         return []
-
-
-if __name__ == '__main__':
-    main()

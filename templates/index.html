@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% import "bootstrap/wtf.html" as wtf %}
 
 {% block title %}首页{% endblock %}
 
@@ -27,18 +26,5 @@
   {{ wtf.form_field(form.submit) }}
 </div>
 
-<div class="page-header">
-  {% if refresh %}
-    <h1>Refresh is True!</h1>
-  {% else %}
-    <h1>Refresh is False!</h1>
-  {% endif %}
-
-  {% if search %}
-    <h1>Hi, {{ price, key_word }}!</h1>
-  {% else %}
-    <h1>Not submit!</h1>
-    {% endif %}
-</div>
 
 {% endblock %}

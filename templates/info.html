@@ -1,0 +1,17 @@
+{% extends "index.html" %}
+
+{% block title %}商品信息{% endblock %}
+
+
+{% block page_content %}
+
+<ul class="list-group">
+  <li class="list-group-item list-group-item-info"><a href="{{ data['url']|safe }}" target="_blank", class="btn btn-info">{{ data['name'] }}</a></li>
+  <li class="well list-group-item list-group-item-success">&emsp;&emsp;{{ image|safe }}</li>
+  <li class="list-group-item list-group-item-warning">JD相似商品:</li>
+  {% for j_goods in data['same'] %}
+    <li class="list-group-item list-group-item-success">&emsp;&emsp;<a href="{{ j_goods['url']|safe }}" target="_blank">{{ j_goods['j_name']|safe }}</a>&emsp;¥{{ j_goods['price'] }}</li>
+  {% endfor %}
+</ul>
+
+{% endblock %}

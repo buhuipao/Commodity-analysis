@@ -1,43 +1,30 @@
 # _*_ coding: utf-8 _*_
 
-from flask import Flask, render_template, session, url_for, redirect, flash
 from flask_bootstrap import Bootstrap
+from flask import Flask, render_template, session
+from flask import url_for, redirect, flash, request
 
-from flask_wtf import FlaskForm as Form
-from wtforms import StringField, FloatField, BooleanField, SubmitField
-from wtforms.validators import Required, Length
-
-
-from bokeh import plotting
-from bokeh.resources import CDN
-from bokeh import embed
+from forms import SearchForm
+from plots import make_my_plot
+from search import Search
+from sql import db
 
 
 app = Flask(__name__)
 bootstrap = Bootstrap(app)
-app.secret_key = 'my-very-long-secret-key'
+app.secret_key = 'my-very-long-and-hard-secret-key'
 
 
-def make_my_plot():
-    x = [1, 2, 3, 4, 5]
-    y = [6, 7, 2, 4, 5]
-    p = plotting.figure(title="simple line example", x_axis_label='x', y_axis_label='y')
-    p.line(x, y, legend="Temp.", line_width=2)
-    return p
-
-
-@app.route('/info', methods=['GET'])
+@app.route('/info/', methods=['GET'])
 def plot():
-    plot = make_my_plot()
-    image = embed.file_html(plot, CDN, u"标题").decode('utf-8')
-    return render_template('info.html', image=image)
-
-
-class SearchForm(Form):
-    price = FloatField('Limit_price', validators=[Required()])
-    key_word = StringField('Key_word', validators=[Required(), Length(1, 64)])
-    refresh = BooleanField('Forced refresh search')
-    submit = SubmitField('Search')
+    goods_name = request.args.get('goods_name', None)
+    key_word = request.args.get('key_word', None)
+    data = db.find_one_goods(key_word, goods_name)
+    image = make_my_plot(data)
+    return render_template(
+            'info.html',
+            image=image,
+            data=data)
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -46,17 +33,56 @@ def index():
     if form.validate_on_submit():
         old_word = session.get('key_word')
         old_price = session.get('price')
-        if old_word is not None and old_price is not None and old_word == form.key_word.data and old_price == form.price.data:
-            flash('It seems like you searched the same keyword and price for the two time!')
+        if old_word == form.key_word.data and \
+           old_price == form.price.data:
+            flash('It seems like you searched the same keyword and \
+                    price for the two time!')
         session['price'] = form.price.data
         session['key_word'] = form.key_word.data
-        session['refresh'] = form.refresh.data
-        session['search'] = True
-        # return redirect(url_for('index'))
-    else:
-        session['refresh'] = False
-        session['search'] = False
-    return render_template('index.html', form=form, refresh=session.get('refresh'), search=session.get('search'), price=session.get('price'), key_word=session.get('key_word'))
+        return redirect(url_for('search',
+                        key_word=form.key_word.data,
+                        price=form.price.data, refresh=form.refresh.data))
+
+    return render_template('index.html', form=form)
+
+
+@app.route('/search/', methods=['GET', 'POST'])
+def search():
+    form = SearchForm()
+    if form.validate_on_submit():
+        old_word = session.get('key_word')
+        old_price = session.get('price')
+        if old_word == form.key_word.data and \
+           old_price == form.price.data:
+            flash('It seems like you searched the same keyword and \
+                    price for the two time!')
+        session['price'] = form.price.data
+        session['key_word'] = form.key_word.data
+        return redirect(url_for('search',
+                        key_word=form.key_word.data,
+                        price=form.price.data,
+                        refresh=form.refresh.data))
+
+    key_word = request.args.get('key_word', None)
+    price = float(request.args.get('price', '0'))
+    refresh = request.args.get('refresh', 'False')
+    result = Search(price, key_word) if refresh == 'True' else db.search_goods(price, key_word)
+    page = int(request.args.get('page', 1))
+    # pagesize = 10
+    # 如果不强制刷新直接从数据库里查询返回结果
+    # pprint(result)
+    return render_template('search.html', result=result, form=form)
+    prev_page = page - 1 if page - 1 else 1
+    next_page = page + 1 if page + 1 <= end_page else end_page
+    return render_template(
+            'search.html',
+            form=form,
+            result=result)
+
+
+@app.errorhandler(500)
+def service_error(e):
+    return render_template('500.html'), 500
 
 
 @app.errorhandler(404)

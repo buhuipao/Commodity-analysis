@@ -1,0 +1,23 @@
+{% macro render_pagination(pagination) %}
+
+<div class=pagination>
+    {% if pagination.has_prev %}
+        <a href="{{ url_for_other_page(pagination.page - 1) }}" class="btn btn-info btn-sm">上一页</a>
+    {% endif %}
+    {% for page in pagination.iter_pages() %}
+        {% if page %}
+            {% if page != pagination.page %}
+                <a href="{{ url_for_other_page(page) }}" class="btn btn-info btn-sm">{{ page }}</a>
+            {% else %}
+                <a href="{{ url_for_other_page(page) }}" class="btn btn-info btn-sm" disabled="disabled">{{ page }}</a>
+            {% endif %}
+        {% else %}
+            <span class=ellipsis>…</span>
+        {% endif %}
+    {% endfor %}
+    {% if pagination.has_next %}
+        <a href="{{ url_for_other_page(pagination.page + 1) }}" class="btn btn-info btn-sm">下一页</a>
+    {% endif %}
+</div>
+
+{% endmacro %}
