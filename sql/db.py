@@ -49,12 +49,7 @@ def save_search_result(data):
 
 def search_goods(limit_price, key_word):
     '''
-    # 传入四个参数，分别为：最低价格，关键字，分页大小，查询页码
-    today = int(time.strftime("%Y%m%d"))
-    data = DB.Amazon.find({'key_word': key_word, 'date': today, 'price': {'$gte': limit_price}})
-    length = DB.Amazon.find({'key_word': key_word, 'date': today, 'price': {'$gte': limit_price}}).count()
-    end_page = length / pagesize + 1
-    return json_util.dumps(data[page*pagesize:(page+1)*pagesize])
+    传入两个参数，分别为：最低价格，关键字
     '''
     result = json_util.dumps(DB.Amazon.find(
         {'key_word': key_word,

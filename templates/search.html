@@ -44,7 +44,29 @@
 </div>
 
 
-<div style="float: right">
-</div>
+<!-- Page nav -->
+<nav aria-label="Page navigation">
+  <ul class="pagination">
+    <li>
+      <a href="{{ url_for('search', page=prev_page, refresh=refresh, key_word=key_word, price=price) }}" aria-label="Previous">
+        <span aria-hidden="true">&laquo;</span>
+      </a>
+    </li>
+
+    {% for i in end_page_list %}
+      {% if page == i %}
+        <li class="active"><a href="{{ url_for('search', page=i, refresh=refresh, key_word=key_word, price=price) }}">{{ i }}</a></li>
+      {% else %}
+        <li><a href="{{ url_for('search', page=i, refresh=refresh, key_word=key_word, price=price) }}">{{ i }}</a></li>
+      {% endif %}
+    {% endfor %}
+
+    <li>
+      <a href="{{ url_for('search', page=next_page, refresh=refresh, key_word=key_word, price=price) }}" aria-label="Next">
+        <span aria-hidden="true">&raquo;</span>
+      </a>
+    </li>
+  </ul>
+</nav>
 
 {% endblock %}
