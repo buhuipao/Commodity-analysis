@@ -14,13 +14,13 @@ from ipdb import set_trace
 jieba.load_userdict('mydict')
 
 
-def Search(limit_price, key_word, page_number=1):
+def Search(limit_price, key_word, page_num=1):
     assert type(limit_price) == float
     result = []
     a_spider = amazon.Amazon()
     j_spider = jd.JD()
     # Amazon爬虫返回的结果格式为一个字典，像这样{A_name: (A_url, A_price), B_name: (B_url, B_price), ...}
-    a_results = a_spider.search(key_word, page_number)
+    a_results = a_spider.search(key_word, page_num)
     for name in a_results.keys():
         search_word = extract_tags(key_word, name)
         assert type(a_results[name][1]) == float
