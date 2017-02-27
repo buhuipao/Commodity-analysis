@@ -29,7 +29,7 @@ def Search(limit_price, key_word, page_number=1):
             continue
         old_data = db.find_one_goods(key_word, name)
         today = int(time.strftime("%Y%m%d"))
-        if old_data and old_data['prices'][-1]['date'] == today:
+        if old_data and 'prices' in old_data.keys() and old_data['prices'][-1]['date'] == today:
             result.append(old_data)
             continue
         try:
