@@ -3,6 +3,7 @@
 import jieba
 import jieba.analyse
 import time
+import threading
 
 from spider import jd
 from spider import amazon
@@ -10,63 +11,61 @@ from sql import db
 
 from ipdb import set_trace
 
-
 jieba.load_userdict('mydict')
 
 
 def Search(limit_price, key_word, page_num=1):
     assert type(limit_price) == float
-    result = []
     a_spider = amazon.Amazon()
     j_spider = jd.JD()
     # Amazon爬虫返回的结果格式为一个字典，像这样{A_name: (A_url, A_price), B_name: (B_url, B_price), ...}
     a_results = a_spider.search(key_word, page_num)
     for name in a_results.keys():
-        search_word = extract_tags(key_word, name)
-        assert type(a_results[name][1]) == float
-        # 筛选用户大于设定价格的的商品，如果价格小于设定的价格就忽略
+        # 筛选用户大于设定价格的的商品，如果价格小于设定的价格就弹出
         if a_results[name][1] < limit_price:
-            continue
-        old_data = db.find_one_goods(key_word, name)
+            a_results.pop(name)
+
+    # 以价格为排序, 将得到一个列表[(a_name, (a_url, a_price)), ...]
+    results = sorted(a_results.items(), key=lambda item: item[1][1])
+
+    # 想要用多线程进行查找相同商品，必须要先把Amazon的结果进行分组，每组商品由一个线程去处理
+    # 避免出现商品数量少于线程数报错(出现分组长度为0)
+    t = len(a_results) / 6 if len(a_results) >= 6 else 1
+    Threads = []
+    Result = []
+    for a_goodses in list(results[i:i+t] for i in xrange(0, len(results), t)):
+        Threads.append(threading.Thread(target=search_same, args=(j_spider, key_word, a_goodses, Result, )))
+    for Thread in Threads:
+        Thread.start()
+    for Thread in Threads:
+        Thread.join()
+    return Result
+
+
+def search_same(j_spider, key_word, a_goodses, Result):
+    # a_goodses 的结构为:[(a_name, (a_url, a_price)), ...]
+    for a_goods in a_goodses:
+        a_name = a_goods[0]
+        a_url = a_goods[1][0]
+        a_price = a_goods[1][1]
+        search_word = extract_tags(key_word, a_name)
+        assert type(a_price) == float
+        old_data = db.find_one_goods(key_word, a_name)
         today = int(time.strftime("%Y%m%d"))
         if old_data and 'prices' in old_data.keys() and old_data['prices'][-1]['date'] == today:
-            result.append(old_data)
+            Result.append(old_data)
             continue
         try:
             # 以Amazon的商品价格作为期望价格(0.9~1.1)做限定价格去搜索JD商品
-            j_results = j_spider.search(a_results[name][-1], search_word)
+            j_results = j_spider.search(a_price, search_word)
             # 如果搜索不到尝试反转搜索关键词
             if len(j_results) == 0:
-                j_results = j_spider.search(a_results[name][1], ' '.join(search_word.split()[::-1]))
-            same_goods = chose_result(a_results[name][1], j_results)
-            data = {'name': name, 'key_word': key_word, 'url': a_results[name][0], 'price': a_results[name][1], 'same': same_goods}
-            result.append(db.save_search_result(data))
+                j_results = j_spider.search(a_price, ' '.join(search_word.split()[::-1]))
+            same_goods = chose_result(a_price, j_results)
+            data = {'name': a_name, 'key_word': key_word, 'url': a_url, 'price': a_price, 'same': same_goods}
+            Result.append(db.save_search_result(data))
         except:
             continue
-    return result
-
-
-def get_input():
-    # 如果输入两个字符则表示限制最低搜索价格
-    Input = raw_input('Please enter product name\n').strip().split()
-    if len(Input) == 0:
-        print('WARNING: Goods name should not be none!')
-        return
-    elif len(Input) > 2:
-        print('WAENING: The wrong format of the goods you provided!')
-        return
-    else:
-        key_word = Input[0].decode('utf-8')
-        try:
-            limit_price = float(Input[1])
-        except:
-            print('WARNING: Please provide the correct price limit or provide the correct price format!')
-            limit_price = float(0)
-    try:
-        page_number = int(raw_input('Please enter the number of pages you want to search\n').strip())
-    except:
-        page_number = 1
-    return (limit_price, key_word, page_number)
 
 
 def extract_tags(key_word, a_name):
