@@ -37,10 +37,13 @@ def save_search_result(data):
             # 如果今日的纪录存在，先弹出压入保存
             if 'prices' in old_data.keys() and today in old_data['prices'][-1].values():
                 # {'$pop': {'prices': 1}}表示从prices列表里正序弹栈
-                DB.Amazon.find_one_and_update({'name': name, 'key_word': key_word}, {'$pop': {'prices': 1}})
+                DB.Amazon.find_one_and_update(
+                        {'name': name, 'key_word': key_word},
+                        {'$pop': {'prices': 1}})
             return DB.Amazon.find_one_and_update(
                     {'name': name, 'key_word': key_word},
-                    {'$push': {'prices': prices}},
+                    {'$push': {'prices': prices},
+                     '$set': {'same': data['same']}},
                     {'_id': 0},
                     return_document=ReturnDocument.AFTER)
     except Exception as e:

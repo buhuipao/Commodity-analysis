@@ -30,7 +30,7 @@ def Search(limit_price, key_word, page_num=1):
 
     # 想要用多线程进行查找相同商品，必须要先把Amazon的结果进行分组，每组商品由一个线程去处理
     # 避免出现商品数量少于线程数报错(出现分组长度为0)
-    t = len(a_results) / 6 if len(a_results) >= 6 else 1
+    t = len(a_results) / 8 if len(a_results) >= 8 else 1
     Threads = []
     Result = []
     for a_goodses in list(results[i:i+t] for i in xrange(0, len(results), t)):
