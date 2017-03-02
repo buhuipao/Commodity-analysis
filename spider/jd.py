@@ -1,16 +1,18 @@
 # _*_ coding: utf-8 _*_
 
 import requests
+import random
 from lxml import etree
-from ipdb import set_trace
+
+from configs import USER_AGENTS
+from sql import db
 
 
 class JD(object):
     '''
     JD爬虫的两个参数(price，key_word)来自Amazon的搜索结果，但是如何确定在Amazon获取到的商品（商品名）在JD能搜索到同一件商品
     我做了以下判断:
-        1) 通过价格限制，因为两件商品在JD，Amazon的价格差距不会超过商品的10%，min_price <= price <= max_price
-        2) 通过比较关键字，Amazon的关键字和JD结果的关键字与的结果, 结果的长度／JD商品关键字 >= 0.50
+        1.通过价格限制，因为两件商品在JD，Amazon的价格差距不会超过商品的10%，min_price <= price <= max_price
     '''
     def __init__(self):
         self.url = 'http://search.jd.com/search'
@@ -22,9 +24,7 @@ class JD(object):
         price_limit = 'exprice_' + min_price + '-' + max_price
         payload = {'keyword': key_word_str, 'enc': 'utf-8', 'ev': price_limit}
         headers = \
-            {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6 \
-                            AppleWebKit/537.36 (KHTML, like Gecko \
-                            Chrome/54.0.2840.71 Safari/537.36',
+            {'User-Agent': random.choice(USER_AGENTS),
              'Host': 'search.jd.com',
              'connection': 'keep-alive',
              'Accept': 'text/html,application/xhtml+xml,application/xml;\
@@ -34,6 +34,27 @@ class JD(object):
              'Accept-Language': 'zh-CN,zh;q=0.8,en;q=0.6',
              'Content-Type': 'text/plain;charset=UTF-8'
              }
+        '''
+        while True:
+            # 假设代理库里有可用代理，否则就采用本机IP为代理
+            proxy = random.choice(db.find_porxy()) \
+                    if len(db.find_porxy()) != 0 else None
+            if proxy:
+                data = {'http': 'http://'+proxy['ip']+':'+proxy['port'],
+                        'https': 'http://'+proxy['ip']+':'+proxy['port']}
+            else:
+                data = {}
+            try:
+                response = requests.get(self.url, params=payload, headers=headers, proxies=data)
+                if response.status_code == 200:
+                    break
+            except:
+                # 如果用的本机IP访问就检查网络, 否则就更新数据库里的状态为False
+                if data != {}:
+                    db.update_proxy(proxy, False)
+                else:
+                    raise ValueError('Can\'t connect the website, please check your network!')
+        '''
         response = requests.get(self.url, headers=headers, params=payload, timeout=60)
         response.encoding = 'utf-8'
         return response.text.encode('utf-8')

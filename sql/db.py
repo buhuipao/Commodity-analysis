@@ -65,3 +65,20 @@ def find_one_goods(key_word, goods_name):
     return DB.Amazon.find_one(
             {'key_word': key_word, 'name': goods_name},
             {'_id': 0})
+
+
+def update_proxy(proxy, state):
+    # 先清理再更新代理IP数据库
+    DB.ProxyIP.remove({'state': False})
+    ip, port = proxy['ip'], proxy['port']
+    DB.ProxyIP.find_one_and_replace(
+            {'ip': ip, 'port': port},
+            {'ip': ip, 'port': port, 'state': state},
+            upsert=True)
+
+
+def find_porxy():
+    # 先清理不可用的代理('state'==False), 接着返回所有可用的代理
+    DB.ProxyIP.remove({'state': False})
+    result = json_util.dumps(DB.ProxyIP.find({'state': True}, {'_id': 0}))
+    return json_util.loads(result)

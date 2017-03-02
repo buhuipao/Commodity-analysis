@@ -1,8 +1,11 @@
 # _*_ coding: utf-8 _*_
 
 import requests
+import random
 from lxml import etree
-from ipdb import set_trace
+
+from configs import USER_AGENTS
+from sql import db
 
 
 class Amazon(object):
@@ -12,9 +15,7 @@ class Amazon(object):
     def get_result(self, key_word, page_number):
         print('Start search goods...')
         headers = \
-            {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6 \
-                            AppleWebKit/537.36 (KHTML, like Gecko \
-                            Chrome/54.0.2840.71 Safari/537.36',
+            {'User-Agent': random.choice(USER_AGENTS),
              'Host': 'www.amazon.cn',
              'Accept': 'text/html,application/xhtml+xml,application/xml;\
                         q=0.9,image/webp,*/*;q=0.8',
@@ -22,6 +23,28 @@ class Amazon(object):
              'Accept-Language': 'zh-CN,zh;q=0.8,en;q=0.6'
              }
         payload = {'ie': 'UTF8', 'keywords': key_word, 'page': page_number}
+
+        '''
+        while True:
+            # 假设代理库里有可用代理，否则就采用本机IP为代理
+            proxy = random.choice(db.find_porxy()) \
+                    if len(db.find_porxy()) != 0 else None
+            if proxy:
+                data = {'http': 'http://'+proxy['ip']+':'+proxy['port'],
+                        'https': 'http://'+proxy['ip']+':'+proxy['port']}
+            else:
+                data = {}
+            try:
+                r = requests.get(self.url, params=payload, headers=headers, proxies=data)
+                if r.status_code == 200:
+                    break
+            except:
+                # 如果用的本机IP访问就检查网络, 否则就更新数据库里的状态为False
+                if data != {}:
+                    db.update_proxy(proxy, False)
+                else:
+                    raise ValueError('Can\'t connect the website, please check your network!')
+        '''
         r = requests.get(self.url, headers=headers, params=payload)
         r.encoding = 'utf-8'
         return r.text.encode('utf-8')
