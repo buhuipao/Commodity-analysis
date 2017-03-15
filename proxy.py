@@ -134,13 +134,14 @@ def check_old_proxy():
 
 def run():
     while True:
-        print('Start grab proxy...')
-        catch_new_proxy()
+        print('Start check old proxy...')
+        check_old_proxy()
 
         print('Start sleep...')
         time.sleep(60)
-        print('Start check old proxy...')
-        check_old_proxy()
+
+        print('Start grab proxy...')
+        catch_new_proxy()
 
         print('Start sleep...')
         time.sleep(60)
