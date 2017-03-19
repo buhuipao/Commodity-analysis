@@ -9,7 +9,9 @@ import time
 from configs import USER_AGENTS
 from sql import db
 
-from ipdb import set_trace
+# from ipdb import set_trace
+
+test_host = ['www.baidu.com', 'www.jd.com', 'www.amazon.cn']
 
 
 def Proxy(result, page):
@@ -68,7 +70,7 @@ def Proxy(result, page):
 
 
 def Check(proxies, action):
-    url = 'http://www.buhuipao.com'
+    url = 'http://' + random.choice(test_host)
     headers = {
             'User-Agent': random.choice(USER_AGENTS),
             'Accept-Encoding': 'gzip, deflate, lzma, sdch',
@@ -77,7 +79,7 @@ def Check(proxies, action):
             'Accept-Language': 'zh-CN,zh;q=0.8,en;q=0.6',
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive',
-            'Host': 'www.buhuipao.com'
+            'Host': random.choice(test_host)
             }
     for proxy in proxies:
         data = {'http': 'http://'+proxy['ip']+':'+proxy['port'],
@@ -138,7 +140,7 @@ def run():
         check_old_proxy()
 
         print('Start sleep...')
-        time.sleep(60)
+        time.sleep(3)
 
         print('Start grab proxy...')
         catch_new_proxy()
