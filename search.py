@@ -3,21 +3,21 @@
 import jieba
 import jieba.analyse
 import time
-import threading
+# import threading
 
 from spider import jd
 from spider import amazon
 from sql import db
 
-from ipdb import set_trace
+# from ipdb import set_trace
 
 jieba.load_userdict('mydict')
+a_spider = amazon.Amazon()
+j_spider = jd.JD()
 
 
-def Search(limit_price, key_word, page_num=1):
+def Search_a(limit_price, key_word, page_num=1):
     assert type(limit_price) == float
-    a_spider = amazon.Amazon()
-    j_spider = jd.JD()
     # Amazon爬虫返回的结果格式为一个字典，像这样{A_name: (A_url, A_price), B_name: (B_url, B_price), ...}
     a_results = a_spider.search(key_word, page_num)
     for name in a_results.keys():
@@ -25,6 +25,8 @@ def Search(limit_price, key_word, page_num=1):
         if a_results[name][1] < limit_price:
             a_results.pop(name)
 
+    return a_results
+    '''
     # 以价格为排序, 将得到一个列表[(a_name, (a_url, a_price)), ...]
     results = sorted(a_results.items(), key=lambda item: item[1][1])
 
@@ -39,7 +41,29 @@ def Search(limit_price, key_word, page_num=1):
         Thread.start()
     for Thread in Threads:
         Thread.join()
-    return Result
+    return results
+    '''
+
+
+def Search_j(a_name, key_word, a_price, a_url):
+    assert type(a_price) == float
+    today = int(time.strftime("%Y%m%d"))
+    old_data = db.find_one_goods(key_word, a_name)
+    if old_data and 'prices' in old_data.keys() and old_data['prices'][-1]['date'] == today:
+        return old_data
+    search_word = extract_tags(key_word, a_name)
+    try:
+        # 以Amazon的商品价格作为期望价格(0.9~1.1)做限定价格去搜索JD商品
+        j_results = j_spider.search(a_price, search_word)
+        # 如果搜索不到尝试反转搜索关键词
+        if len(j_results) == 0:
+            j_results = j_spider.search(a_price, ' '.join(search_word.split()[::-1]))
+        same_goods = chose_result(a_price, j_results)
+        data = {'name': a_name, 'key_word': key_word, 'url': a_url, 'price': a_price, 'same': same_goods}
+        return db.save_search_result(data)
+    except Exception:
+        data = {'name': a_name, 'key_word': key_word, 'url': a_url, 'price': a_price, 'same': []}
+        return db.save_search_result(data)
 
 
 def search_same(j_spider, key_word, a_goodses, Result):

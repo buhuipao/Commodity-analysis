@@ -35,9 +35,9 @@
   <table class="table">
     {% for goods in result %}
     <tr class="list-group-item list-group-item-info">
-      <td><a href="{{ goods['url']|safe }}" target="_blank">{{ goods['name']|safe }}</a></td>
-      <td><span class="label label-info">¥{{ goods['prices'][-1]['price']|safe }}</span></td>
-      <td><a href="{{ url_for('plot',  key_word=goods['key_word'], goods_name=goods['name']) }}" target="_blank", class="btn btn-info btn-sm">价格走势</a></td>
+      <td><a href="{{ result[goods][0]|safe }}" target="_blank">{{ goods|safe }}</a></td>
+      <td><span class="label label-info">¥{{ result[goods][1]|safe }}</span></td>
+      <td><a href="{{ url_for('plot', name=goods, key_word=key_word, price=result[goods][1], url=result[goods][0]) }}" target="_blank", class="btn btn-info btn-sm">价格走势</a></td>
     </tr>
     {% endfor %}
   </table>

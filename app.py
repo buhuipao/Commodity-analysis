@@ -6,7 +6,7 @@ from flask import url_for, redirect, flash, request
 
 from forms import SearchForm
 from plots import make_my_plot
-from search import Search
+from search import Search_a, Search_j
 from sql import db
 
 
@@ -57,7 +57,7 @@ def search():
     refresh = request.args.get('refresh', 'False')
     page = int(request.args.get('page', 1))
     if refresh == 'True':
-        result, end_page = Search(price, key_word, page), 5
+        result, end_page = Search_a(price, key_word, page), 5
     else:
         data = db.search_goods(price, key_word)
         end_page = len(data)/8 if len(data) % 8 == 0 else len(data)/8 + 1
@@ -84,9 +84,11 @@ def search():
 
 @app.route('/info/', methods=['GET'])
 def plot():
-    goods_name = request.args.get('goods_name', None)
+    a_name = request.args.get('name', None)
     key_word = request.args.get('key_word', None)
-    data = db.find_one_goods(key_word, goods_name)
+    a_url = request.args.get('url', None)
+    a_price = float(request.args.get('price', 0))
+    data = Search_j(a_name, key_word, a_price, a_url)
     image = make_my_plot(data)
     return render_template(
             'info.html',

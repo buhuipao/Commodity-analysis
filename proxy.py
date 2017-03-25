@@ -9,7 +9,7 @@ import time
 from configs import USER_AGENTS
 from sql import db
 
-from ipdb import set_trace
+# from ipdb import set_trace
 
 
 def Proxy(result, page):
