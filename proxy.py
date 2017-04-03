@@ -79,7 +79,7 @@ def Check(proxies, action):
             'Accept-Language': 'zh-CN,zh;q=0.8,en;q=0.6',
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive',
-            'Host': random.choice(test_host)
+            'Host': url.split('/')[-1]
             }
     for proxy in proxies:
         data = {'http': 'http://'+proxy['ip']+':'+proxy['port'],
