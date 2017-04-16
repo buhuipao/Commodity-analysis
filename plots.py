@@ -13,23 +13,30 @@ import time
 def make_my_plot(data):
     prices = data['prices']
     title = u'价格走势图'
-    # 转化时间20170301为时间戳，方便绘图
+    # 转化时间(20170301)为时间戳，方便绘图, 图形展示更加友好
     x = map(lambda item: pd.tslib.Timestamp(str(item['date'])), prices)
     y = map(lambda item: item['price'], prices)
+    # 得到预测的日期和价格
     predict_date, predict_price = get_predict(map(lambda item: item['date'], prices), y)
     tomorrow = pd.tslib.Timestamp(str(predict_date))
     x.append(tomorrow)
     y.append(predict_price)
+    # 把所有时间和价格数据进行画图
     p = plotting.figure(
             title=title,
+            # 定义画布的宽度、高度、横轴、纵轴
             plot_width=800,
             plot_height=250,
             x_axis_type="datetime",
             x_axis_label=u'日期',
             y_axis_label=u'价格')
+    # 定义线的宽度为2个像素
     p.line(x, y, line_width=2)
+    # 定义点的填充颜色为白色
     p.circle(x[:-1], y[:-1], fill_color="white", size=8)
+    # 定义预测点的填充颜色为红色
     p.circle(x[-1:], y[-1:], fill_color="red", size=8)
+    # 定义图像的标题
     image = embed.file_html(p, CDN, u"标题").decode('utf-8')
     return image
 

@@ -35,8 +35,10 @@ def Search(limit_price, key_word, page_num=1):
     Result = []
     for a_goodses in list(results[i:i+t] for i in xrange(0, len(results), t)):
         Threads.append(threading.Thread(target=search_same, args=(j_spider, key_word, a_goodses, Result, )))
+    # 开始多线程
     for Thread in Threads:
         Thread.start()
+    # 阻塞多线程直到全部抓取完成
     for Thread in Threads:
         Thread.join()
     return Result
